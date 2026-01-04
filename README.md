@@ -12,15 +12,16 @@ Copyright (c) 2017 Vasco Asturiano.
 
 # Project Structure
 
+```bash
 Interactive facility graph
 ├── data
-│ ├── facility.graphml # Generated graph data
-│ └── facility.png # Optional static graph image
-├── generate_graph.py # IFC → GraphML generator
-├── index.html # Interactive 3D graph viewer
-├── README.md # Project documentation
-└── requirements.txt # Python dependencies
-
+│ ├── facility.graphml 
+│ └── facility.png 
+├── generate_graph.py 
+├── index.html 
+├── README.md 
+└── requirements.txt 
+```
 # Usage
 
 ### Generate graph data
