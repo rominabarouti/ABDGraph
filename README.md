@@ -3,7 +3,7 @@
 This project is designed to generate and display an interactive graph representation of facility spaces from an IFC 4x3 model.  
 It builds a spatial adjacency and containment graph from IFC data and renders it directly in the browser using a 3D force-directed graph.
 
-The graph data is generated using a Python pipeline and visualized as a web-based interactive viewer.
+The graph data is generated using a Python script and visualized as a web-based interactive viewer.
 
 The visualization is based on the 3D Force Graph web representation by  
 Copyright (c) 2017 Vasco Asturiano.
