@@ -17,9 +17,10 @@ Extracts attributes:
 import sys
 import os
 import re
+import argparse
 from collections import defaultdict
 
-import ifcopenshellS
+import ifcopenshell
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -29,8 +30,7 @@ except Exception:
     ifc_get_psets = None
 
 
-IFC_FILE = "PATH_TO_IFC_FILE"
-OUT_PREFIX = "data/facility.graphml"
+OUT_PREFIX = "data/facility"
 
 WRITE_GRAPHML = True
 WRITE_PNG = True
@@ -371,12 +371,20 @@ def draw_graph(G, out_png):
 
 
 def main():
-    if not os.path.isfile(IFC_FILE):
-        print("IFC file not found:", IFC_FILE)
+    parser = argparse.ArgumentParser(description="Generate GraphML file from IFC 4x3 file")
+    parser.add_argument("ifc_file", help="Path to the IFC file")
+    parser.add_argument("--output", "-o", default=OUT_PREFIX, help=f"Output path for GraphML and PNG files (default: {OUT_PREFIX})")
+    args = parser.parse_args()
+
+    ifc_file = args.ifc_file
+    out_prefix = args.output
+
+    if not os.path.isfile(ifc_file):
+        print("IFC file not found:", ifc_file)
         sys.exit(1)
 
-    print("Loading IFC:", IFC_FILE)
-    ifc = ifcopenshell.open(IFC_FILE)
+    print("Loading IFC:", ifc_file)
+    ifc = ifcopenshell.open(ifc_file)
 
     print("Building IFC4x3 graph...")
     G = build_ifc43_graph(ifc)
@@ -384,12 +392,12 @@ def main():
     print(f"Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
 
     if WRITE_GRAPHML:
-        out_graphml = f"{OUT_PREFIX}.graphml"
+        out_graphml = f"{out_prefix}.graphml"
         print("Writing GraphML:", out_graphml)
         nx.write_graphml(serialize_graphml(G), out_graphml)
 
     if WRITE_PNG:
-        out_png = f"{OUT_PREFIX}.png"
+        out_png = f"{out_prefix}.png"
         print("Writing PNG visualization:", out_png)
         draw_graph(G, out_png)
 

@@ -3,17 +3,131 @@
 <head>
   <meta charset="utf-8" />
   <title>IFC Space Graph Viewer</title>
+  <link rel="icon" type="image/png" href="/static/dtu_logo.png" />
 
   <script src="https://cdn.jsdelivr.net/npm/3d-force-graph"></script>
 
   <style>
     body { margin:0; background:white; color:black; font-family:Arial; }
-    #3d-graph { position:fixed; inset:0; }
+    #3d-graph { position:fixed; inset:0; top:170px; }
     .scene-nav-info { display: none !important; }
+
+    #no-graph-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #666;
+      font-size: 18px;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #no-graph-message.hidden {
+      display: none;
+    }
+
+    #banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 150px;
+      background-color: #990000;
+      color: white;
+      z-index: 10000;
+      padding: 15px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    #banner-content {
+      flex: 1;
+    }
+
+    #banner-logo {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      height: 70px;
+      max-width: 140px;
+      object-fit: contain;
+    }
+
+    #banner h1 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    #banner p {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    #upload-section {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 0;
+      margin-top: 22px;
+    }
+
+    #fileInput {
+      flex: 1;
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    #fileInput::file-selector-button {
+      padding: 6px 12px;
+      margin-right: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.2);
+      color: white;
+      cursor: pointer;
+    }
+
+    #generateBtn {
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 6px;
+      border: none;
+      background: white;
+      color: #990000;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #generateBtn:hover:not(:disabled) {
+      background: #f0f0f0;
+    }
+
+    #generateBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #statusMessage {
+      margin-top: 8px;
+      font-size: 13px;
+      min-height: 18px;
+      line-height: 1.3;
+    }
 
     #controls {
       position: absolute;
-      top: 20px;
+      top: 190px;
       left: 20px;
       background: rgba(255,255,255,0.9);
       padding: 15px 18px;
@@ -23,6 +137,11 @@
       z-index: 9999;
       color:black;
       box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+      display: none;
+    }
+
+    #controls.visible {
+      display: block;
     }
 
     #controls select, #controls button {
@@ -50,6 +169,19 @@
 
 <body>
 
+<div id="banner">
+  <div id="banner-content">
+    <h1>IFC Space Graph Viewer</h1>
+    <p>Upload your 4x3 IFC file from your model and press the Generate Graph button.</p>
+    <div id="upload-section">
+      <input type="file" id="fileInput" accept=".ifc" />
+      <button id="generateBtn">Generate Graph</button>
+    </div>
+    <div id="statusMessage"></div>
+  </div>
+  <img id="banner-logo" src="/static/dtu_white.png" alt="DTU Logo" />
+</div>
+
 <div id="controls">
   <strong style="font-size:16px">Graph Controls</strong><br><br>
 
@@ -69,12 +201,16 @@
     <option value="LEVEL">Level</option>
   </select>
 
-  <button onclick="resetGraph()" style="margin-top:12px;">
+  <button id="resetGraphBtn" style="margin-top:12px;">
     Show Full Graph
   </button>
 </div>
 
 <div id="3d-graph"></div>
+
+<div id="no-graph-message">
+  <p>No graph loaded. Please upload an IFC file and click "Generate Graph" to begin.</p>
+</div>
 
 <div id="instructions">
   Left-click: rotate &nbsp; | &nbsp; Mouse-wheel: zoom &nbsp; | &nbsp; Right-click: pan
@@ -219,7 +355,17 @@ function filterByGrade(grade) {
   Graph.graphData(currentData);
 }
 
-async function loadGraphML(url="data/facility.graphml") {
+async function loadGraphML(url) {
+  if (!url) {
+    console.error("No URL provided to loadGraphML");
+    return;
+  }
+
+  const noGraphMsg = document.getElementById("no-graph-message");
+  if (noGraphMsg) {
+    noGraphMsg.classList.add("hidden");
+  }
+
   const text = await (await fetch(url)).text();
   const xml = new DOMParser().parseFromString(text, "application/xml");
 
@@ -260,7 +406,6 @@ async function loadGraphML(url="data/facility.graphml") {
     return link;
   });
 
-  // Remove Level 2 if needed
   nodes = nodes.filter(n => (n.name || "").trim().toLowerCase() !== "level 2");
 
   fullData = { nodes, links };
@@ -284,9 +429,102 @@ async function loadGraphML(url="data/facility.graphml") {
 
   roomSelect.onchange = e => highlightRoom(e.target.value);
   document.getElementById("gradeSelect").onchange = e => filterByGrade(e.target.value);
+
+  const controls = document.getElementById("controls");
+  if (controls) {
+    controls.classList.add("visible");
+  }
 }
 
-loadGraphML();
+async function generateGraph() {
+  console.log("generateGraph called");
+  const fileInput = document.getElementById("fileInput");
+  const generateBtn = document.getElementById("generateBtn");
+  const statusMessage = document.getElementById("statusMessage");
+
+  if (!fileInput || !generateBtn || !statusMessage) {
+    console.error("Required elements not found");
+    return;
+  }
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    statusMessage.textContent = "Please select an IFC file first.";
+    statusMessage.style.color = "#ffcccc";
+    return;
+  }
+
+  const file = fileInput.files[0];
+  if (!file.name.toLowerCase().endsWith('.ifc')) {
+    statusMessage.textContent = "Please select a valid .ifc file.";
+    statusMessage.style.color = "#ffcccc";
+    return;
+  }
+
+  generateBtn.disabled = true;
+  statusMessage.textContent = "Uploading and processing file...";
+  statusMessage.style.color = "white";
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    console.log("Sending file to server...");
+    const response = await fetch('/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    console.log("Response status:", response.status);
+    
+    if (!response.ok && response.status === 404) {
+      throw new Error('Server not found. Please make sure the Flask server is running (python app.py)');
+    }
+
+    const result = await response.json();
+    console.log("Server response:", result);
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to generate graph');
+    }
+
+    statusMessage.textContent = "Graph generated successfully! Loading...";
+    statusMessage.style.color = "#90EE90";
+
+    setTimeout(() => {
+      loadGraphML('data/facility.graphml?t=' + Date.now()).then(() => {
+        statusMessage.textContent = "Graph loaded successfully!";
+      }).catch((error) => {
+        statusMessage.textContent = "Error loading graph: " + error.message;
+        statusMessage.style.color = "#ffcccc";
+        console.error('Error loading graph:', error);
+      });
+    }, 500);
+
+  } catch (error) {
+    statusMessage.textContent = "Error: " + error.message;
+    statusMessage.style.color = "#ffcccc";
+    console.error('Error generating graph:', error);
+  } finally {
+    generateBtn.disabled = false;
+  }
+}
+
+const generateBtn = document.getElementById("generateBtn");
+if (generateBtn) {
+  console.log("Event listener attached to generate button");
+  generateBtn.addEventListener('click', generateGraph);
+} else {
+  console.error("Generate button not found!");
+}
+
+const resetGraphBtn = document.getElementById("resetGraphBtn");
+if (resetGraphBtn) {
+  console.log("Event listener attached to reset graph button");
+  resetGraphBtn.addEventListener('click', resetGraph);
+} else {
+  console.error("Reset graph button not found!");
+}
+
 </script>
 
 </body>
