@@ -7,6 +7,13 @@
 ```bash
 pip install -r requirements.txt
 ```
+If you don't have python in your path, you can try one of the following: 
+```bash
+python -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
+```
+
+
 
 ### 2. Run the Server
 
@@ -38,7 +45,7 @@ For production deployment, consider using:
 
 ## Notes
 
-- The server accepts IFC files up to 500MB
+- The server accepts IFC files up to 1GB
 - Processing timeout is set to 5 minutes
 - Generated GraphML files are saved to `data/facility.graphml`
 - Temporary uploaded files are automatically cleaned up
