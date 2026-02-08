@@ -23,6 +23,12 @@ python app.py
 
 The server will start on `http://localhost:5000`
 
+if you see *port 5000 is already in use* try the following: 
+```bash
+PORT=5001 python app.py
+```
+
+
 ### 3. Open in Browser
 
 Navigate to `http://localhost:5000` in your web browser.
