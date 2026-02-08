@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 1000 * 1024 * 1024  # 1GB max file size
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')

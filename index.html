@@ -201,6 +201,13 @@
     <option value="LEVEL">Level</option>
   </select>
 
+  <br><br>
+
+  Filter by level <br>
+  <select id="levelSelect">
+    <option value="__all__">All levels</option>
+  </select>
+
   <button id="resetGraphBtn" style="margin-top:12px;">
     Show Full Graph
   </button>
@@ -307,6 +314,8 @@ function resetGraph() {
   Graph.graphData(fullData);
   document.getElementById("roomSelect").value = "__all__";
   document.getElementById("gradeSelect").value = "__all__";
+  const lvl = document.getElementById("levelSelect");
+  if (lvl) lvl.value = "__all__";
 }
 
 /* Room filter */
@@ -354,6 +363,49 @@ function filterByGrade(grade) {
   currentData = { nodes, links };
   Graph.graphData(currentData);
 }
+
+/* Level filter */
+function filterByLevel(levelId) {
+  if (levelId === "__all__") return resetGraph();
+
+  const levelsById = (fullData._levelsById) || {};
+  const levelName = levelsById[levelId] || null;
+  // Build a set of nodes that match the level (by id, storey, level, or name)
+  const keep = new Set();
+
+  fullData.nodes.forEach(n => {
+    if (n.ifc_type === 'IfcBuildingStorey' && n.id === levelId) keep.add(n.id);
+    if (n.storey && n.storey === levelId) keep.add(n.id);
+    if (n.level && (n.level === levelId || n.level === levelName)) keep.add(n.id);
+
+    for (const k in n) {
+      if (!Object.prototype.hasOwnProperty.call(n, k)) continue;
+      if (n[k] === levelId) keep.add(n.id);
+    }
+
+    if (levelName && n.name && n.name.toLowerCase().includes(levelName.toLowerCase())) keep.add(n.id);
+  });
+
+  if (fullData.nodes.find(n => n.id === levelId)) keep.add(levelId);
+
+  fullData.links.forEach(l => {
+    const s = typeof l.source === "object" ? l.source.id : l.source;
+    const t = typeof l.target === "object" ? l.target.id : l.target;
+    if (keep.has(s)) keep.add(t);
+    if (keep.has(t)) keep.add(s);
+  });
+
+  const nodes = fullData.nodes.filter(n => keep.has(n.id));
+  const links = fullData.links.filter(l => {
+    const s = typeof l.source === "object" ? l.source.id : l.source;
+    const t = typeof l.target === "object" ? l.target.id : l.target;
+    return keep.has(s) && keep.has(t);
+  });
+
+  currentData = { nodes, links };
+  Graph.graphData(currentData);
+}
+
 
 async function loadGraphML(url) {
   if (!url) {
@@ -429,6 +481,30 @@ async function loadGraphML(url) {
 
   roomSelect.onchange = e => highlightRoom(e.target.value);
   document.getElementById("gradeSelect").onchange = e => filterByGrade(e.target.value);
+
+  const levelSelect = document.getElementById("levelSelect");
+  if (levelSelect) {
+    levelSelect.innerHTML = `<option value="__all__">All levels</option>`;
+
+    const levelNodes = nodes.filter(n => n.ifc_type === 'IfcBuildingStorey' || (n.name && /level/i.test(n.name)));
+    const levelsById = {};
+    levelNodes.forEach(l => {
+      if (levelsById[l.id]) return; // skip duplicates
+      levelsById[l.id] = l.name || l.id;
+    });
+
+    const sortedLevelIds = Object.keys(levelsById).sort((a, b) => (levelsById[a] || '').localeCompare(levelsById[b] || ''));
+    sortedLevelIds.forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = levelsById[id];
+      levelSelect.appendChild(opt);
+    });
+
+    fullData._levelsById = levelsById;
+
+    levelSelect.onchange = e => filterByLevel(e.target.value);
+  }
 
   const controls = document.getElementById("controls");
   if (controls) {
